@@ -12,18 +12,17 @@ RUN apk add  \
 		openssl
 
 # Directory in workspace
-WORKDIR "/go/src/github.infra.hana.ondemand.com/istio/istio-broker"
+WORKDIR "/go/src/github.com/Peripli/service-manager-broker-proxy-istio-plugin"
 
 COPY . ./
-
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -v -a -buildmode=plugin  -o /service-manager-plugin.so  ./service-manager-plugin/main.go
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -v -a -buildmode=plugin  -o /service-manager-istio-plugin.so  .
 
 FROM  gcr.io/sap-se-gcp-istio-dev/sb-proxy-k8s
 
 WORKDIR /app
 
-COPY --from=builder /service-manager-plugin.so /app/
+COPY --from=builder /service-manager-istio-plugin.so /app/
 
 RUN apk add --no-cache bash gawk sed grep bc coreutils
 
-ENTRYPOINT [ "./main","--plugin","service-manager-plugin.so"]
+ENTRYPOINT [ "./main","--plugin","service-manager-istio-plugin.so"]

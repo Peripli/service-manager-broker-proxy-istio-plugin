@@ -10,6 +10,6 @@ if [ -z $HUB ] || [ -z $TAG ]; then
   exit 1
 fi 
 
-docker build .. -f ./Dockerfile -t $HUB/sb-istio-proxy-k8s:$TAG
+docker build . -t $HUB/sb-istio-proxy-k8s:$TAG
 docker push $HUB/sb-istio-proxy-k8s:$TAG
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Peripli/service-manager/pkg/web"
-	"github.infra.hana.ondemand.com/istio/istio-broker/pkg/plugin"
+	"github.com/Peripli/service-manager-broker-proxy-istio-plugin/pkg/plugin"
 	"unsafe"
 )
 
