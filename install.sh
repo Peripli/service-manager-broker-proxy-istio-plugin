@@ -6,7 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 GOPATH=${SCRIPT_DIR}/../../../../..
 
 cd ${SCRIPT_DIR}
-cd $GOPATH/src/github.com/peripli/service-broker-proxy-k8s
+cd $GOPATH/src/github.com/Peripli/service-broker-proxy-k8s
 
 helm del --purge service-broker-proxy || true
 helm install \
