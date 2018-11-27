@@ -1,0 +1,11 @@
+trigger-istio-broker-proxy-plugin-release:
+  template: 'default'
+  variants:
+    create-release:
+      steps:
+        dummy: ~
+      traits:
+        cronjob:
+          interval: '1m'
+        
+
