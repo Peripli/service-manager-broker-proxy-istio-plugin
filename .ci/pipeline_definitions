@@ -5,6 +5,8 @@ trigger-istio-broker-proxy-plugin-release:
       steps:
         dummy: ~
       traits:
+        options:
+          public_build_logs: true
         cronjob:
           interval: '1m'
         
