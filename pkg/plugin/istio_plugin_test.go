@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -20,7 +21,7 @@ import (
 func TestIstioPluginBind(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var err error
-	interceptor := SpyInterceptor{}
+	interceptor := SpyPostBindInterceptor{}
 	plugin := IstioPlugin{interceptor: &interceptor}
 	nextHandler := SpyWebHandler{}
 	sourceEndpoint := model.Endpoint{Host: "host2", Port: 8888}
@@ -253,6 +254,56 @@ func TestIstioPluginAdaptCredentialsBadRequest(t *testing.T) {
 	g.Expect(err.(model.HttpError).Status).To(Equal(http.StatusBadRequest))
 }
 
+func TestIstioPluginUnbind(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var err error
+	interceptor := SpyPostBindInterceptor{}
+	plugin := IstioPlugin{interceptor: &interceptor}
+	nextHandler := SpyWebHandler{}
+
+	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
+	origRequest := http.Request{URL: origURL, Method: http.MethodDelete}
+	request := web.Request{Request: &origRequest}
+
+	response, err := plugin.Unbind(&request, &nextHandler)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(response.StatusCode).To(Equal(http.StatusOK))
+}
+
+func TestIstioPluginUnbindWithError(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var err error
+	interceptor := SpyUnbindFailingInterceptor{}
+	plugin := IstioPlugin{interceptor: &interceptor}
+	nextHandler := SpyWebHandler{}
+
+	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
+	origRequest := http.Request{URL: origURL, Method: http.MethodDelete}
+	request := web.Request{Request: &origRequest}
+
+	_, err = plugin.Unbind(&request, &nextHandler)
+
+	g.Expect(err).To(HaveOccurred())
+}
+
+func TestIstioPluginUnbindForbidden(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var err error
+	interceptor := SpyPostBindInterceptor{}
+	plugin := IstioPlugin{interceptor: &interceptor}
+	nextHandler := SpyWebHandler{bindStatusCode: http.StatusForbidden}
+
+	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
+	origRequest := http.Request{URL: origURL, Method: http.MethodDelete}
+	request := web.Request{Request: &origRequest}
+
+	response, err := plugin.Unbind(&request, &nextHandler)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+}
+
 type SpyWebHandler struct {
 	url               url.URL
 	method            string
@@ -285,13 +336,23 @@ func (s *SpyWebHandler) Handle(req *web.Request) (resp *web.Response, err error)
 	}
 }
 
-type SpyInterceptor struct {
+type SpyPostBindInterceptor struct {
 	router.NoOpInterceptor
 	bindId string
 }
 
-func (s *SpyInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingId string,
+func (s *SpyPostBindInterceptor) PostBind(request model.BindRequest, response model.BindResponse, bindingId string,
 	adapt func(model.Credentials, []model.EndpointMapping) (*model.BindResponse, error)) (*model.BindResponse, error) {
 	s.bindId = bindingId
 	return &response, nil
+}
+
+type SpyUnbindFailingInterceptor struct {
+	router.NoOpInterceptor
+	bindId string
+}
+
+func (s *SpyUnbindFailingInterceptor) PostDelete(bindId string) error {
+	s.bindId = bindId
+	return fmt.Errorf("delete failed")
 }

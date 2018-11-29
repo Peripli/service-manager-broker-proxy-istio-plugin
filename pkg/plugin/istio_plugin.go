@@ -105,7 +105,10 @@ func (i *IstioPlugin) AdaptCredentials(credentials model.Credentials, endpointMa
 
 func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Response, error) {
 	log.Printf("IstioPlugin unbind was triggered with request adaptRequestBody: %s\n", string(request.Body))
-	i.interceptor.PostDelete(extractBindId(request.URL.Path))
+	err := i.interceptor.PostDelete(extractBindId(request.URL.Path))
+	if err != nil {
+		return nil, err
+	}
 	return next.Handle(request)
 }
 
