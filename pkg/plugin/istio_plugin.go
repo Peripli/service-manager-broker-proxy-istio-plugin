@@ -43,7 +43,7 @@ func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Respons
 	}
 
 	if response.StatusCode/100 != 2 {
-		logError(err)
+		logError(fmt.Errorf("http response code %d", response.StatusCode))
 		return response, nil
 	}
 	var bindResponse model.BindResponse

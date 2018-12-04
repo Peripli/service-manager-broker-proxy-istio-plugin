@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
 
-	"github.com/pkg/errors"
+
 
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/service-manager/pkg/web"
@@ -18,8 +19,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestIstioPluginBind(t *testing.T) {
+func TestIstioPluginRegistration(t *testing.T) {
 	g := NewGomegaWithT(t)
+
+	api := web.API{}
+	istioPlugin := &IstioPlugin{}
+	api.RegisterPlugins(istioPlugin)
+	g.Expect(len(api.Filters)).To(Equal(2))
+}
+
+func TestIstioPluginBind(t *testing.T) {
+		g := NewGomegaWithT(t)
 	var err error
 	interceptor := SpyPostBindInterceptor{}
 	plugin := IstioPlugin{interceptor: &interceptor}
