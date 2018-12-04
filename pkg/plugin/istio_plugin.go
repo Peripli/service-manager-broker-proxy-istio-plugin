@@ -114,10 +114,10 @@ func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Respo
 
 func extractBindId(path string) string {
 	splitPath := strings.Split(path, "/")
-	if splitPath[7] != "service_bindings" {
+	if splitPath[len(splitPath)-2] != "service_bindings" {
 		panic(fmt.Sprintf("Failed to extract binding id from path %s", path))
 	}
-	return splitPath[8]
+	return splitPath[len(splitPath)-1]
 }
 
 func createConsumerInterceptor() router.ConsumerInterceptor {

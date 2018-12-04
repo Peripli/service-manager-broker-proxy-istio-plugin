@@ -71,7 +71,7 @@ func TestIstioPluginBindForbidden(t *testing.T) {
 	plugin := IstioPlugin{interceptor: router.NoOpInterceptor{}}
 	nextHandler := SpyWebHandler{bindStatusCode: http.StatusForbidden}
 
-	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
+	origURL, _ := url.Parse("http://host:80/some/other/path/that/we/dont/controll/at/all/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
 	expectedBindRequest := model.BindRequest{
 		NetworkData:          model.NetworkDataRequest{NetworkProfileId: "test"},
