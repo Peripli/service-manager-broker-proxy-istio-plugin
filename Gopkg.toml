@@ -24,7 +24,13 @@
 #   go-tests = true
 #   unused-packages = true
 
-ignored = ["github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"]
+ignored = [
+  "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1",
+  "github.com/Peripli/istio-broker-proxy/pkg/model",
+  "github.com/Peripli/istio-broker-proxy/pkg/config",
+  "github.com/Peripli/istio-broker-proxy/pkg/profiles",
+  "github.com/Peripli/istio-broker-proxy/pkg/router"
+]
 
 [[override]]
   name = "github.com/golang/glog"
