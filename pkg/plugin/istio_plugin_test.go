@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 
@@ -319,7 +320,7 @@ func TestIstioPluginFetchCatalog(t *testing.T) {
 	origRequest := http.Request{URL: origURL, Method: http.MethodGet}
 
 	catalogBody, _ := json.Marshal(&catalog)
-	nextHandler := SpyWebHandler{statusCode: http.StatusOK, responseBody:catalogBody}
+	nextHandler := SpyWebHandler{statusCode: http.StatusOK, responseBody: catalogBody}
 
 	var pathParams map[string]string
 	request := web.Request{Request: &origRequest, PathParams: pathParams}
@@ -350,6 +351,16 @@ func TestFailingFetchCatalog(t *testing.T) {
 
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err).To(BeIdenticalTo(someError))
+}
+
+func TestCreateConsumerInterceptor(t *testing.T) {
+	g := NewGomegaWithT(t)
+	os.Setenv("ISTIO_SERVICE_NAME_PREFIX", "hello-")
+	os.Setenv("ISTIO_CONSUMER_ID", "myconsumer-id")
+	ci := createConsumerInterceptor(nil)
+	g.Expect(ci.ConsumerId).To(Equal("myconsumer-id"))
+	g.Expect(ci.ServiceNamePrefix).To(Equal("hello-"))
+
 }
 
 type SpyWebHandler struct {

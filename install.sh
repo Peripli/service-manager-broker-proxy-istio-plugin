@@ -8,6 +8,11 @@ GOPATH=${SCRIPT_DIR}/../../../..
 cd ${SCRIPT_DIR}
 cd $GOPATH/src/github.com/Peripli/service-broker-proxy-k8s
 
+git checkout -- .
+
+# Add ISTIO environment variables to deployment after "key: sm_password"
+sed -i -e "/key: sm_password/r $SCRIPT_DIR/env.yml" charts/service-broker-proxy-k8s/templates/deployment.yaml
+
 helm del --purge service-broker-proxy || true
 helm install \
     --name service-broker-proxy \
@@ -17,4 +22,6 @@ helm install \
     --set sm.password=$SM_PASSWORD \
     --set image.repository=$HUB/sb-istio-proxy-k8s \
     --set image.tag=$TAG \
+    --set istio.consumer_id=${ISTIO_CONSUMER_ID:-client.istio.sapcloud.io} \
+    --set istio.service_name_prefix=${ISTIO_SERVICE_NAME_PREFIX:-istio-} \
     charts/service-broker-proxy-k8s

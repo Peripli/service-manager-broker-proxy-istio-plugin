@@ -3,6 +3,7 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"strings"
@@ -143,15 +144,21 @@ func extractBindId(path string) string {
 	return splitPath[len(splitPath)-1]
 }
 
-func createConsumerInterceptor() router.ConsumerInterceptor {
+func createConsumerInterceptor(configStore router.ConfigStore) router.ConsumerInterceptor {
+	config := viper.New()
+	config.SetEnvPrefix("istio")
+	config.BindEnv("service_name_prefix")
+	config.BindEnv("consumer_id")
+	config.SetDefault("service_name_prefix", "istio-")
 	consumerInterceptor := router.ConsumerInterceptor{}
-	consumerInterceptor.ServiceNamePrefix = "istio-"
-	consumerInterceptor.ConsumerId = "client.istio.sapcloud.io"
-	consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
+	consumerInterceptor.ServiceNamePrefix = config.GetString("service_name_prefix")
+	consumerInterceptor.ConsumerId = config.GetString("consumer_id")
+	log.Printf("IstioPlugin starting with configuration service_name_prefix=%s consumer_id=%s\n", consumerInterceptor.ServiceNamePrefix, consumerInterceptor.ConsumerId)
+	consumerInterceptor.ConfigStore = configStore
 	return consumerInterceptor
 }
 
 func InitIstioPlugin(api *web.API) {
-	istioPlugin := &IstioPlugin{interceptor: createConsumerInterceptor()}
+	istioPlugin := &IstioPlugin{interceptor: createConsumerInterceptor(router.NewInClusterConfigStore())}
 	api.RegisterPlugins(istioPlugin)
 }
