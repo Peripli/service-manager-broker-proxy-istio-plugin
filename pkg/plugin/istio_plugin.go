@@ -122,7 +122,7 @@ func extractBindId(path string) string {
 
 func createConsumerInterceptor() router.ConsumerInterceptor {
 	consumerInterceptor := router.ConsumerInterceptor{}
-	consumerInterceptor.ServiceIdPrefix = "istio-"
+	consumerInterceptor.ServiceNamePrefix = "istio-"
 	consumerInterceptor.ConsumerId = "client.istio.sapcloud.io"
 	consumerInterceptor.ConfigStore = router.NewInClusterConfigStore()
 	return consumerInterceptor
