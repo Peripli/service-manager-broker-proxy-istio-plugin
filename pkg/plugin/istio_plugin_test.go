@@ -11,8 +11,6 @@ import (
 
 	"github.com/Peripli/istio-broker-proxy/pkg/router"
 
-
-
 	"github.com/Peripli/istio-broker-proxy/pkg/model"
 	"github.com/Peripli/service-manager/pkg/web"
 
@@ -25,18 +23,18 @@ func TestIstioPluginRegistration(t *testing.T) {
 	api := web.API{}
 	istioPlugin := &IstioPlugin{}
 	api.RegisterPlugins(istioPlugin)
-	g.Expect(len(api.Filters)).To(Equal(2))
+	g.Expect(len(api.Filters)).To(Equal(3))
 }
 
 func TestIstioPluginBind(t *testing.T) {
-		g := NewGomegaWithT(t)
+	g := NewGomegaWithT(t)
 	var err error
 	interceptor := SpyPostBindInterceptor{}
 	plugin := IstioPlugin{interceptor: &interceptor}
 	nextHandler := SpyWebHandler{}
 	sourceEndpoint := model.Endpoint{Host: "host2", Port: 8888}
 	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
-	nextHandler.bindResponseBody, _ = json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{sourceEndpoint}})
+	nextHandler.responseBody, _ = json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{sourceEndpoint}})
 	nextHandler.adaptResponseBody, _ = json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{targetEndpoint}})
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
@@ -53,7 +51,7 @@ func TestIstioPluginBind(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	var bindRequest model.BindRequest
-	err = json.Unmarshal(nextHandler.bindRequestBody, &bindRequest)
+	err = json.Unmarshal(nextHandler.requestBody, &bindRequest)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(bindRequest).To(Equal(expectedBindRequest))
 
@@ -69,7 +67,7 @@ func TestIstioPluginBindForbidden(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var err error
 	plugin := IstioPlugin{interceptor: router.NoOpInterceptor{}}
-	nextHandler := SpyWebHandler{bindStatusCode: http.StatusForbidden}
+	nextHandler := SpyWebHandler{statusCode: http.StatusForbidden}
 
 	origURL, _ := url.Parse("http://host:80/some/other/path/that/we/dont/controll/at/all/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
@@ -124,26 +122,22 @@ func TestIstioPluginBindHandleFails(t *testing.T) {
 
 func TestIstioPluginBindInvalidBindResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
-	var err error
 	plugin := IstioPlugin{interceptor: router.NoOpInterceptor{}}
 	nextHandler := SpyWebHandler{}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
 	request := web.Request{Request: &origRequest, Body: []byte("{}")}
-	g.Expect(err).NotTo(HaveOccurred())
 
-	_, err = plugin.Bind(&request, &nextHandler)
-
+	_, err := plugin.Bind(&request, &nextHandler)
 	g.Expect(err).To(HaveOccurred())
-
 }
 
 func TestIstioPluginBindOkButAdaptForbidden(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var err error
 	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{}}
-	nextHandler := SpyWebHandler{adaptStatusCode: http.StatusForbidden, bindResponseBody: []byte("{}")}
+	nextHandler := SpyWebHandler{statusCode: http.StatusForbidden, responseBody: []byte("{}")}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
@@ -161,7 +155,7 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponse(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var err error
 	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{}}
-	nextHandler := SpyWebHandler{bindResponseBody: []byte("{}")}
+	nextHandler := SpyWebHandler{responseBody: []byte("{}")}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
@@ -198,7 +192,7 @@ func TestIstioPluginAdaptCredentials(t *testing.T) {
 
 	var adaptRequest model.AdaptCredentialsRequest
 
-	err = json.Unmarshal(nextHandler.adaptRequestBody, &adaptRequest)
+	err = json.Unmarshal(nextHandler.requestBody, &adaptRequest)
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(adaptRequest.Credentials).To(Equal(credentials))
@@ -248,7 +242,7 @@ func TestIstioPluginAdaptCredentialsBadRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	plugin := IstioPlugin{}
-	nextHandler := SpyWebHandler{adaptResponseBody: []byte(""), adaptStatusCode: http.StatusBadRequest}
+	nextHandler := SpyWebHandler{adaptResponseBody: []byte(""), statusCode: http.StatusBadRequest}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
@@ -302,7 +296,7 @@ func TestIstioPluginUnbindForbidden(t *testing.T) {
 	var err error
 	interceptor := SpyPostBindInterceptor{}
 	plugin := IstioPlugin{interceptor: &interceptor}
-	nextHandler := SpyWebHandler{bindStatusCode: http.StatusForbidden}
+	nextHandler := SpyWebHandler{statusCode: http.StatusForbidden}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodDelete}
@@ -314,15 +308,57 @@ func TestIstioPluginUnbindForbidden(t *testing.T) {
 	g.Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 }
 
+func TestIstioPluginFetchCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	interceptor := router.ConsumerInterceptor{ServiceNamePrefix: "istio-"}
+	plugin := IstioPlugin{interceptor: &interceptor}
+	catalog := model.Catalog{[]model.Service{{Name: "istio-servicename"}}}
+
+	origURL, _ := url.Parse("http://host:80/v2/catalog")
+	origRequest := http.Request{URL: origURL, Method: http.MethodGet}
+
+	catalogBody, _ := json.Marshal(&catalog)
+	nextHandler := SpyWebHandler{statusCode: http.StatusOK, responseBody:catalogBody}
+
+	var pathParams map[string]string
+	request := web.Request{Request: &origRequest, PathParams: pathParams}
+
+	response, err := plugin.FetchCatalog(&request, &nextHandler)
+
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(string(response.Body)).To(ContainSubstring("servicename"))
+	g.Expect(string(response.Body)).NotTo(ContainSubstring("istio-"))
+}
+
+func TestFailingFetchCatalog(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	interceptor := router.ConsumerInterceptor{ServiceNamePrefix: "istio-"}
+	plugin := IstioPlugin{interceptor: &interceptor}
+
+	origURL, _ := url.Parse("http://host:80/v2/catalog")
+	origRequest := http.Request{URL: origURL, Method: http.MethodGet}
+
+	someError := fmt.Errorf("some problem")
+	nextHandler := SpyWebHandler{err: someError}
+
+	var pathParams map[string]string
+	request := web.Request{Request: &origRequest, PathParams: pathParams}
+
+	_, err := plugin.FetchCatalog(&request, &nextHandler)
+
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err).To(BeIdenticalTo(someError))
+}
+
 type SpyWebHandler struct {
 	url               url.URL
 	method            string
-	adaptRequestBody  []byte
 	adaptResponseBody []byte
-	adaptStatusCode   int
-	bindRequestBody   []byte
-	bindResponseBody  []byte
-	bindStatusCode    int
+	requestBody       []byte
+	responseBody      []byte
+	statusCode        int
 	requestHeaders    http.Header
 	err               error
 }
@@ -331,19 +367,17 @@ func (s *SpyWebHandler) Handle(req *web.Request) (resp *web.Response, err error)
 	s.url = *req.Request.URL
 	s.method = req.Request.Method
 	s.requestHeaders = req.Header
-	if strings.HasSuffix(s.url.Path, "adapt_credentials") {
-		if s.adaptStatusCode == 0 {
-			s.adaptStatusCode = http.StatusOK
-		}
-		s.adaptRequestBody = req.Body
-		return &web.Response{Body: s.adaptResponseBody, StatusCode: s.adaptStatusCode}, s.err
-	} else {
-		if s.bindStatusCode == 0 {
-			s.bindStatusCode = http.StatusOK
-		}
-		s.bindRequestBody = req.Body
-		return &web.Response{Body: s.bindResponseBody, StatusCode: s.bindStatusCode}, s.err
+	if s.statusCode == 0 {
+		s.statusCode = http.StatusOK
 	}
+	s.requestBody = req.Body
+	var responseBody []byte
+	if strings.HasSuffix(s.url.Path, "adapt_credentials") {
+		responseBody = s.adaptResponseBody
+	} else {
+		responseBody = s.responseBody
+	}
+	return &web.Response{Body: responseBody, StatusCode: s.statusCode}, s.err
 }
 
 type SpyPostBindInterceptor struct {

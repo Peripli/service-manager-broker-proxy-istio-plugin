@@ -112,6 +112,29 @@ func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Respo
 	return next.Handle(request)
 }
 
+func (i *IstioPlugin) FetchCatalog(request *web.Request, next web.Handler) (*web.Response, error) {
+	response, err := next.Handle(request)
+	if err != nil {
+		return response, err
+	}
+
+	var catalog model.Catalog
+	err = json.Unmarshal(response.Body, &catalog)
+	if err != nil{
+		logError(err)
+		return nil, err
+	}
+	i.interceptor.PostCatalog(&catalog)
+
+	response.Body, err = json.Marshal(&catalog)
+	if err != nil{
+		logError(err)
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func extractBindId(path string) string {
 	splitPath := strings.Split(path, "/")
 	if splitPath[len(splitPath)-2] != "service_bindings" {
