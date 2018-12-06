@@ -152,10 +152,11 @@ func TestIstioPluginBindOkButAdaptForbidden(t *testing.T) {
 
 }
 
-func TestIstioPluginBindInvalidAdaptCredentialsResponse(t *testing.T) {
+func TestIstioPluginBindInvalidAdaptCredentialsResponseWithoutEndpoints(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var err error
-	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{}}
+	configStore := &router.MockConfigStore{}
+	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{ConfigStore: configStore}}
 	nextHandler := SpyWebHandler{responseBody: []byte("{}")}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
@@ -169,6 +170,32 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponse(t *testing.T) {
 
 }
 
+func TestIstioPluginBindInvalidAdaptCredentialsResponseWithEndpoints(t *testing.T) {
+	g := NewGomegaWithT(t)
+	var err error
+	configStore := &router.MockConfigStore{}
+	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{ConfigStore: configStore}}
+	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
+	endpointsResponse, _ := json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{targetEndpoint},
+		NetworkData: model.NetworkDataResponse{
+			Data: model.DataResponse{Endpoints: []model.Endpoint{targetEndpoint}}}})
+	nextHandler := SpyWebHandler{responseBody: endpointsResponse}
+
+	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
+	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
+	request := web.Request{Request: &origRequest, Body: []byte("{}")}
+	g.Expect(err).NotTo(HaveOccurred())
+
+	_, err = plugin.Bind(&request, &nextHandler)
+
+	g.Expect(err).To(HaveOccurred())
+
+	g.Expect(configStore.CreatedServices).To(HaveLen(0))
+	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(0))
+	g.Expect(configStore.DeletedServices).To(HaveLen(1))
+	g.Expect(configStore.DeletedIstioConfigs).To(HaveLen(6))
+
+}
 func TestIstioPluginAdaptCredentials(t *testing.T) {
 	g := NewGomegaWithT(t)
 

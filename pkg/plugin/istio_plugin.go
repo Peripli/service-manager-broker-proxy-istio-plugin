@@ -60,10 +60,6 @@ func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Respons
 		})
 	if err != nil {
 		logError(err)
-		httpError, ok := err.(model.HttpError)
-		if ok {
-			return &web.Response{StatusCode: httpError.Status}, nil
-		}
 		return nil, err
 	}
 	response.Body, err = json.Marshal(modifiedBindResponse)
@@ -121,14 +117,14 @@ func (i *IstioPlugin) FetchCatalog(request *web.Request, next web.Handler) (*web
 
 	var catalog model.Catalog
 	err = json.Unmarshal(response.Body, &catalog)
-	if err != nil{
+	if err != nil {
 		logError(err)
 		return nil, err
 	}
 	i.interceptor.PostCatalog(&catalog)
 
 	response.Body, err = json.Marshal(&catalog)
-	if err != nil{
+	if err != nil {
 		logError(err)
 		return nil, err
 	}
