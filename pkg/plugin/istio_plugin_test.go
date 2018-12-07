@@ -115,9 +115,12 @@ func TestIstioPluginBindHandleFails(t *testing.T) {
 	request := web.Request{Request: &origRequest, Body: []byte("{}")}
 	g.Expect(err).NotTo(HaveOccurred())
 
-	_, err = plugin.Bind(&request, &nextHandler)
+	response, err := plugin.Bind(&request, &nextHandler)
 
+	g.Expect(err).NotTo(HaveOccurred())
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("oops"))
 
 }
 
@@ -130,8 +133,11 @@ func TestIstioPluginBindInvalidBindResponse(t *testing.T) {
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
 	request := web.Request{Request: &origRequest, Body: []byte("{}")}
 
-	_, err := plugin.Bind(&request, &nextHandler)
+	response, err := plugin.Bind(&request, &nextHandler)
+	g.Expect(err).NotTo(HaveOccurred())
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("unexpected end of JSON input"))
 }
 
 func TestIstioPluginBindOkButAdaptForbidden(t *testing.T) {
@@ -164,9 +170,12 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithoutEndpoints(t *testi
 	request := web.Request{Request: &origRequest, Body: []byte("{}")}
 	g.Expect(err).NotTo(HaveOccurred())
 
-	_, err = plugin.Bind(&request, &nextHandler)
+	response, err := plugin.Bind(&request, &nextHandler)
 
+	g.Expect(err).NotTo(HaveOccurred())
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("unexpected end of JSON input"))
 
 }
 
@@ -186,9 +195,12 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithEndpoints(t *testing.
 	request := web.Request{Request: &origRequest, Body: []byte("{}")}
 	g.Expect(err).NotTo(HaveOccurred())
 
-	_, err = plugin.Bind(&request, &nextHandler)
+	response, err := plugin.Bind(&request, &nextHandler)
 
+	g.Expect(err).NotTo(HaveOccurred())
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("unexpected end of JSON input"))
 
 	g.Expect(configStore.CreatedServices).To(HaveLen(0))
 	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(0))
@@ -270,7 +282,7 @@ func TestIstioPluginAdaptCredentialsBadRequest(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	plugin := IstioPlugin{}
-	nextHandler := SpyWebHandler{adaptResponseBody: []byte(""), statusCode: http.StatusBadRequest}
+	nextHandler := SpyWebHandler{adaptResponseBody: []byte(`{"error" : "qqq", "description" : "ddd"}`), statusCode: http.StatusBadRequest}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
@@ -282,8 +294,8 @@ func TestIstioPluginAdaptCredentialsBadRequest(t *testing.T) {
 	_, err := plugin.AdaptCredentials(credentials, endpointMappings, &nextHandler, &bindRequest)
 
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(Equal("Error during call of adapt credentials"))
-	g.Expect(err.(model.HttpError).Status).To(Equal(http.StatusBadRequest))
+	g.Expect(err.Error()).To(Equal("qqq"))
+	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusBadRequest))
 }
 
 func TestIstioPluginUnbind(t *testing.T) {
@@ -314,9 +326,12 @@ func TestIstioPluginUnbindWithError(t *testing.T) {
 	origRequest := http.Request{URL: origURL, Method: http.MethodDelete}
 	request := web.Request{Request: &origRequest}
 
-	_, err = plugin.Unbind(&request, &nextHandler)
+	response, err := plugin.Unbind(&request, &nextHandler)
 
+	g.Expect(err).NotTo(HaveOccurred())
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("delete failed"))
 }
 
 func TestIstioPluginUnbindForbidden(t *testing.T) {
@@ -374,10 +389,12 @@ func TestFailingFetchCatalog(t *testing.T) {
 	var pathParams map[string]string
 	request := web.Request{Request: &origRequest, PathParams: pathParams}
 
-	_, err := plugin.FetchCatalog(&request, &nextHandler)
+	response, err := plugin.FetchCatalog(&request, &nextHandler)
 
+	g.Expect(err).NotTo(HaveOccurred())
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err).To(BeIdenticalTo(someError))
+	g.Expect(err.Error()).To(Equal("some problem"))
 }
 
 func TestCreateConsumerInterceptor(t *testing.T) {

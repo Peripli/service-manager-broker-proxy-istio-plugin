@@ -27,11 +27,10 @@ func logError(err error) {
 
 func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Response, error) {
 	var bindRequest model.BindRequest
-	log.Printf("IstioPlugin bind was triggered with request adaptRequestBody: %s\n", string(request.Body))
+	log.Printf("IstioPlugin bind was triggered\n")
 	err := json.Unmarshal(request.Body, &bindRequest)
 	if err != nil {
-		logError(err)
-		return &web.Response{StatusCode: http.StatusBadRequest}, nil
+		return httpError(err, http.StatusBadRequest)
 	}
 	log.Println("execute prebind")
 	bindRequest = *i.interceptor.PreBind(bindRequest)
@@ -39,19 +38,17 @@ func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Respons
 
 	response, err := next.Handle(request)
 	if err != nil {
-		logError(err)
-		return nil, err
+		return httpError(err, http.StatusBadGateway)
 	}
 
-	if response.StatusCode/100 != 2 {
-		logError(fmt.Errorf("http response code %d", response.StatusCode))
-		return response, nil
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
+	if err != nil {
+		return httpError(err, http.StatusBadGateway)
 	}
 	var bindResponse model.BindResponse
 	err = json.Unmarshal(response.Body, &bindResponse)
 	if err != nil {
-		logError(err)
-		return nil, err
+		return httpError(err, http.StatusInternalServerError)
 	}
 	log.Println("execute postbind")
 	modifiedBindResponse, err := i.interceptor.PostBind(bindRequest, bindResponse, extractBindId(request.URL.Path),
@@ -59,13 +56,11 @@ func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Respons
 			return i.AdaptCredentials(credentials, mappings, next, request)
 		})
 	if err != nil {
-		logError(err)
-		return nil, err
+		return httpError(err, http.StatusInternalServerError)
 	}
 	response.Body, err = json.Marshal(modifiedBindResponse)
 	if err != nil {
-		logError(err)
-		return nil, err
+		return httpError(err, http.StatusInternalServerError)
 	}
 	return response, nil
 }
@@ -86,10 +81,10 @@ func (i *IstioPlugin) AdaptCredentials(credentials model.Credentials, endpointMa
 		logError(err)
 		return nil, err
 	}
-	if response.StatusCode/100 != 2 {
-		httpError := model.HttpError{Status: response.StatusCode, Message: fmt.Sprintf("Error during call of adapt credentials")}
-		logError(httpError)
-		return nil, httpError
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
+	if err != nil {
+		logError(err)
+		return nil, err
 	}
 	var bindResponse model.BindResponse
 	err = json.Unmarshal(response.Body, &bindResponse)
@@ -100,33 +95,53 @@ func (i *IstioPlugin) AdaptCredentials(credentials model.Credentials, endpointMa
 	return &bindResponse, nil
 }
 
-func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Response, error) {
-	log.Printf("IstioPlugin unbind was triggered with request adaptRequestBody: %s\n", string(request.Body))
-	err := i.interceptor.PostDelete(extractBindId(request.URL.Path))
+func httpError(err error, statusCode int) (*web.Response, error) {
+	log.Printf("ERROR: %s\n", err.Error())
+	httpError := model.HttpErrorFromError(err, statusCode)
+	response := &web.Response{StatusCode: httpError.StatusCode}
+	response.Body, err = json.Marshal(httpError)
 	if err != nil {
 		return nil, err
 	}
-	return next.Handle(request)
+	return response, nil
+}
+
+func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Response, error) {
+	log.Printf("IstioPlugin unbind was triggered\n")
+	response, err := next.Handle(request)
+	if err != nil {
+		return httpError(err, http.StatusBadGateway)
+	}
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
+	if err != nil {
+		return httpError(err, http.StatusBadGateway)
+	}
+	err = i.interceptor.PostDelete(extractBindId(request.URL.Path))
+	if err != nil {
+		return httpError(err, http.StatusInternalServerError)
+	}
+	return response, nil
 }
 
 func (i *IstioPlugin) FetchCatalog(request *web.Request, next web.Handler) (*web.Response, error) {
 	response, err := next.Handle(request)
 	if err != nil {
-		return response, err
+		return httpError(err, http.StatusBadGateway)
 	}
-
+	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
+	if err != nil {
+		return httpError(err, http.StatusBadGateway)
+	}
 	var catalog model.Catalog
 	err = json.Unmarshal(response.Body, &catalog)
 	if err != nil {
-		logError(err)
-		return nil, err
+		return httpError(err, http.StatusInternalServerError)
 	}
 	i.interceptor.PostCatalog(&catalog)
 
 	response.Body, err = json.Marshal(&catalog)
 	if err != nil {
-		logError(err)
-		return nil, err
+		return httpError(err, http.StatusInternalServerError)
 	}
 
 	return response, nil
