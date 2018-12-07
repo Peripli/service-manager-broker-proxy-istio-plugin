@@ -137,7 +137,7 @@ func TestIstioPluginBindInvalidBindResponse(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(Equal("unexpected end of JSON input"))
+	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
 }
 
 func TestIstioPluginBindOkButAdaptForbidden(t *testing.T) {
@@ -175,7 +175,7 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithoutEndpoints(t *testi
 	g.Expect(err).NotTo(HaveOccurred())
 	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("unexpected end of JSON input"))
+	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
 
 }
 
@@ -200,102 +200,13 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithEndpoints(t *testing.
 	g.Expect(err).NotTo(HaveOccurred())
 	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.(*model.HttpError).ErrorMsg).To(Equal("unexpected end of JSON input"))
+	g.Expect(err.Error()).To(ContainSubstring("Can't unmarshal response from"))
 
 	g.Expect(configStore.CreatedServices).To(HaveLen(0))
 	g.Expect(configStore.CreatedIstioConfigs).To(HaveLen(0))
 	g.Expect(configStore.DeletedServices).To(HaveLen(1))
 	g.Expect(configStore.DeletedIstioConfigs).To(HaveLen(6))
 
-}
-func TestIstioPluginAdaptCredentials(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	plugin := IstioPlugin{interceptor: router.NoOpInterceptor{}}
-	nextHandler := SpyWebHandler{}
-
-	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
-	nextHandler.adaptResponseBody, _ = json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{targetEndpoint}})
-	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
-	var origHeader http.Header = map[string][]string{"Authentication": {"Bearer"}}
-	origRequest := http.Request{URL: origURL, Method: http.MethodPut, Header: origHeader}
-	bindRequest := web.Request{Request: &origRequest}
-
-	credentials := model.Credentials{AdditionalProperties: map[string]json.RawMessage{"password": json.RawMessage([]byte(`"abc"`))}}
-	endpointMappings := []model.EndpointMapping{{Source: model.Endpoint{Host: "host", Port: 1234}, Target: targetEndpoint}}
-	adaptResponse, err := plugin.AdaptCredentials(credentials, endpointMappings, &nextHandler, &bindRequest)
-
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(nextHandler.url.Path).To(Equal("/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345/adapt_credentials"))
-	g.Expect(nextHandler.method).To(Equal(http.MethodPost))
-	g.Expect(nextHandler.requestHeaders).To(Equal(origHeader))
-
-	var adaptRequest model.AdaptCredentialsRequest
-
-	err = json.Unmarshal(nextHandler.requestBody, &adaptRequest)
-
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(adaptRequest.Credentials).To(Equal(credentials))
-	g.Expect(adaptRequest.EndpointMappings).To(Equal(endpointMappings))
-
-	g.Expect(adaptResponse.Endpoints).To(Equal([]model.Endpoint{targetEndpoint}))
-
-}
-
-func TestIstioPluginAdaptCredentialsError(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	plugin := IstioPlugin{}
-	nextHandler := SpyWebHandler{err: errors.New("oops")}
-
-	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
-	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
-	bindRequest := web.Request{Request: &origRequest}
-
-	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
-	credentials := model.Credentials{AdditionalProperties: map[string]json.RawMessage{"password": json.RawMessage([]byte(`"abc"`))}}
-	endpointMappings := []model.EndpointMapping{{Source: model.Endpoint{Host: "host", Port: 1234}, Target: targetEndpoint}}
-	_, err := plugin.AdaptCredentials(credentials, endpointMappings, &nextHandler, &bindRequest)
-
-	g.Expect(err).To(HaveOccurred())
-}
-
-func TestIstioPluginAdaptCredentialsInvalidResponse(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	plugin := IstioPlugin{}
-	nextHandler := SpyWebHandler{adaptResponseBody: []byte("dfsf")}
-
-	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
-	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
-	bindRequest := web.Request{Request: &origRequest}
-
-	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
-	credentials := model.Credentials{AdditionalProperties: map[string]json.RawMessage{"password": json.RawMessage([]byte(`"abc"`))}}
-	endpointMappings := []model.EndpointMapping{{Source: model.Endpoint{Host: "host", Port: 1234}, Target: targetEndpoint}}
-	_, err := plugin.AdaptCredentials(credentials, endpointMappings, &nextHandler, &bindRequest)
-
-	g.Expect(err).To(HaveOccurred())
-}
-
-func TestIstioPluginAdaptCredentialsBadRequest(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	plugin := IstioPlugin{}
-	nextHandler := SpyWebHandler{adaptResponseBody: []byte(`{"error" : "qqq", "description" : "ddd"}`), statusCode: http.StatusBadRequest}
-
-	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
-	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
-	bindRequest := web.Request{Request: &origRequest}
-
-	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
-	credentials := model.Credentials{AdditionalProperties: map[string]json.RawMessage{"password": json.RawMessage([]byte(`"abc"`))}}
-	endpointMappings := []model.EndpointMapping{{Source: model.Endpoint{Host: "host", Port: 1234}, Target: targetEndpoint}}
-	_, err := plugin.AdaptCredentials(credentials, endpointMappings, &nextHandler, &bindRequest)
-
-	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(Equal("qqq"))
-	g.Expect(err.(*model.HttpError).StatusCode).To(Equal(http.StatusBadRequest))
 }
 
 func TestIstioPluginUnbind(t *testing.T) {

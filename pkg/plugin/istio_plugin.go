@@ -36,63 +36,22 @@ func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Respons
 	bindRequest = *i.interceptor.PreBind(bindRequest)
 	request.Body, _ = json.Marshal(bindRequest)
 
-	response, err := next.Handle(request)
+	peripliRestClient := &PeripliRestClient{request: request, next: next}
+	client := router.InterceptedOsbClient{&router.OsbClient{peripliRestClient}, i.interceptor}
+	instanceId, bindId := extractServiceIdBindId(request.URL.Path)
+
+	bindResponse, err := client.Bind(instanceId, bindId, &bindRequest)
+
 	if err != nil {
 		return httpError(err, http.StatusBadGateway)
 	}
 
-	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
-	if err != nil {
-		return httpError(err, http.StatusBadGateway)
-	}
-	var bindResponse model.BindResponse
-	err = json.Unmarshal(response.Body, &bindResponse)
+	peripliRestClient.response.Body, err = json.Marshal(bindResponse)
 	if err != nil {
 		return httpError(err, http.StatusInternalServerError)
 	}
-	log.Println("execute postbind")
-	modifiedBindResponse, err := i.interceptor.PostBind(bindRequest, bindResponse, extractBindId(request.URL.Path),
-		func(credentials model.Credentials, mappings []model.EndpointMapping) (*model.BindResponse, error) {
-			return i.AdaptCredentials(credentials, mappings, next, request)
-		})
-	if err != nil {
-		return httpError(err, http.StatusInternalServerError)
-	}
-	response.Body, err = json.Marshal(modifiedBindResponse)
-	if err != nil {
-		return httpError(err, http.StatusInternalServerError)
-	}
-	return response, nil
-}
 
-func (i *IstioPlugin) AdaptCredentials(credentials model.Credentials, endpointMappings []model.EndpointMapping, next web.Handler, bindRequest *web.Request) (*model.BindResponse, error) {
-	request := web.Request{Request: bindRequest.Request, PathParams: bindRequest.PathParams}
-	request.URL.Path = request.URL.Path + "/adapt_credentials"
-	request.Method = http.MethodPost
-	adaptCredentialsRequest := model.AdaptCredentialsRequest{credentials, endpointMappings}
-	var err error
-	request.Body, err = json.Marshal(&adaptCredentialsRequest)
-	if err != nil {
-		logError(err)
-		return nil, err
-	}
-	response, err := next.Handle(&request)
-	if err != nil {
-		logError(err)
-		return nil, err
-	}
-	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
-	if err != nil {
-		logError(err)
-		return nil, err
-	}
-	var bindResponse model.BindResponse
-	err = json.Unmarshal(response.Body, &bindResponse)
-	if err != nil {
-		logError(err)
-		return nil, err
-	}
-	return &bindResponse, nil
+	return peripliRestClient.response, nil
 }
 
 func httpError(err error, statusCode int) (*web.Response, error) {
@@ -108,51 +67,39 @@ func httpError(err error, statusCode int) (*web.Response, error) {
 
 func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Response, error) {
 	log.Printf("IstioPlugin unbind was triggered\n")
-	response, err := next.Handle(request)
+	peripliRestClient := &PeripliRestClient{request: request, next: next}
+	client := router.InterceptedOsbClient{&router.OsbClient{peripliRestClient}, i.interceptor}
+	instanceId, bindId := extractServiceIdBindId(request.URL.Path)
+	err := client.Unbind(instanceId, bindId)
 	if err != nil {
 		return httpError(err, http.StatusBadGateway)
 	}
-	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
-	if err != nil {
-		return httpError(err, http.StatusBadGateway)
-	}
-	err = i.interceptor.PostDelete(extractBindId(request.URL.Path))
-	if err != nil {
-		return httpError(err, http.StatusInternalServerError)
-	}
-	return response, nil
+	return peripliRestClient.response, nil
 }
 
 func (i *IstioPlugin) FetchCatalog(request *web.Request, next web.Handler) (*web.Response, error) {
-	response, err := next.Handle(request)
-	if err != nil {
-		return httpError(err, http.StatusBadGateway)
-	}
-	err = model.HttpErrorFromResponse(response.StatusCode, response.Body)
-	if err != nil {
-		return httpError(err, http.StatusBadGateway)
-	}
-	var catalog model.Catalog
-	err = json.Unmarshal(response.Body, &catalog)
-	if err != nil {
-		return httpError(err, http.StatusInternalServerError)
-	}
-	i.interceptor.PostCatalog(&catalog)
+	peripliRestClient := &PeripliRestClient{request: request, next: next}
+	client := router.InterceptedOsbClient{&router.OsbClient{peripliRestClient}, i.interceptor}
 
-	response.Body, err = json.Marshal(&catalog)
+	catalog, err := client.GetCatalog()
+	if err != nil {
+		return httpError(err, http.StatusBadGateway)
+	}
+
+	peripliRestClient.response.Body, err = json.Marshal(&catalog)
 	if err != nil {
 		return httpError(err, http.StatusInternalServerError)
 	}
 
-	return response, nil
+	return peripliRestClient.response, nil
 }
 
-func extractBindId(path string) string {
+func extractServiceIdBindId(path string) (string, string) {
 	splitPath := strings.Split(path, "/")
 	if splitPath[len(splitPath)-2] != "service_bindings" {
 		panic(fmt.Sprintf("Failed to extract binding id from path %s", path))
 	}
-	return splitPath[len(splitPath)-1]
+	return splitPath[len(splitPath)-3], splitPath[len(splitPath)-1]
 }
 
 func createConsumerInterceptor(configStore router.ConfigStore) router.ConsumerInterceptor {
