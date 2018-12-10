@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-type PeripliRestClient struct {
+type PeripliContext struct {
 	request  *web.Request
 	next     web.Handler
 	response *web.Response
@@ -18,30 +18,30 @@ type PeripliRestClient struct {
 }
 
 type PeripliRestRequest struct {
-	*PeripliRestClient
+	*PeripliContext
 }
 
 type PeripliRestResponse struct {
-	*PeripliRestClient
+	*PeripliContext
 }
 
-func (client *PeripliRestClient) Get() router.RestRequest {
+func (client *PeripliContext) Get() router.RestRequest {
 	client.request.Method = http.MethodGet
 	return &PeripliRestRequest{client}
 }
 
-func (client *PeripliRestClient) Delete() router.RestRequest {
+func (client *PeripliContext) Delete() router.RestRequest {
 	client.request.Method = http.MethodDelete
 	return &PeripliRestRequest{client}
 }
 
-func (client *PeripliRestClient) Post(request interface{}) router.RestRequest {
+func (client *PeripliContext) Post(request interface{}) router.RestRequest {
 	client.request.Method = http.MethodPost
 	client.request.Body, client.err = json.Marshal(request)
 	return &PeripliRestRequest{client}
 }
 
-func (client *PeripliRestClient) Put(request interface{}) router.RestRequest {
+func (client *PeripliContext) Put(request interface{}) router.RestRequest {
 	client.request.Method = http.MethodPut
 	client.request.Body, client.err = json.Marshal(request)
 	return &PeripliRestRequest{client}
@@ -53,7 +53,7 @@ func (r *PeripliRestRequest) Path(path string) router.RestRequest {
 }
 
 func (r *PeripliRestRequest) Do() router.RestResponse {
-	response := PeripliRestResponse{r.PeripliRestClient}
+	response := PeripliRestResponse{r.PeripliContext}
 	if r.err != nil {
 		return &response
 	}
@@ -84,4 +84,17 @@ func (o *PeripliRestResponse) Into(result interface{}) error {
 
 func (o *PeripliRestResponse) Error() error {
 	return o.err
+}
+
+func (o *PeripliContext) JSON(result interface{}, err error) (*web.Response, error) {
+	if err != nil {
+		return httpError(err, http.StatusBadGateway)
+	}
+	if result != nil {
+		o.response.Body, err = json.Marshal(result)
+		if err != nil {
+			return httpError(err, http.StatusInternalServerError)
+		}
+	}
+	return o.response, nil
 }
