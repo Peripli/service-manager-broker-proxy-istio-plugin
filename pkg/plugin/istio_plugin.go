@@ -47,7 +47,7 @@ func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Respo
 	peripliContext := &PeripliContext{request: request, next: next}
 	client := router.InterceptedOsbClient{&router.OsbClient{peripliContext}, i.interceptor}
 	instanceId, bindId := extractServiceIdBindId(request.URL.Path)
-	err := client.Unbind(instanceId, bindId)
+	err := client.Unbind(instanceId, bindId, request.URL.RawQuery)
 	return peripliContext.JSON(nil, err)
 }
 

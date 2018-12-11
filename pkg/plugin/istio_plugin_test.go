@@ -216,7 +216,7 @@ func TestIstioPluginUnbind(t *testing.T) {
 	plugin := IstioPlugin{interceptor: &interceptor}
 	nextHandler := SpyWebHandler{}
 
-	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
+	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345?parameter=true")
 	origRequest := http.Request{URL: origURL, Method: http.MethodDelete}
 	request := web.Request{Request: &origRequest}
 
@@ -224,6 +224,7 @@ func TestIstioPluginUnbind(t *testing.T) {
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(response.StatusCode).To(Equal(http.StatusOK))
+	g.Expect(nextHandler.url.RawQuery).To(Equal("parameter=true"))
 }
 
 func TestIstioPluginUnbindWithError(t *testing.T) {
