@@ -47,8 +47,8 @@ func (client *PeripliContext) Put(request interface{}) router.RestRequest {
 	return &PeripliRestRequest{client}
 }
 
-func (r *PeripliRestRequest) Path(path string) router.RestRequest {
-	r.request.URL.Path = path
+func (r *PeripliRestRequest) AppendPath(path string) router.RestRequest {
+	r.request.URL.Path = r.request.URL.Path + path
 	return r
 }
 
