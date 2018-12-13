@@ -35,9 +35,9 @@ func (i *IstioPlugin) Bind(request *web.Request, next web.Handler) (*web.Respons
 
 	peripliContext := &PeripliContext{request: request, next: next}
 	client := router.InterceptedOsbClient{&router.OsbClient{peripliContext}, i.interceptor}
-	instanceId, bindId := extractServiceIdBindId(request.URL.Path)
+	bindId := extractBindId(request.URL.Path)
 
-	bindResponse, err := client.Bind(instanceId, bindId, &bindRequest)
+	bindResponse, err := client.Bind(bindId, &bindRequest)
 
 	return peripliContext.JSON(bindResponse, err)
 }
@@ -46,8 +46,8 @@ func (i *IstioPlugin) Unbind(request *web.Request, next web.Handler) (*web.Respo
 	log.Printf("IstioPlugin unbind was triggered\n")
 	peripliContext := &PeripliContext{request: request, next: next}
 	client := router.InterceptedOsbClient{&router.OsbClient{peripliContext}, i.interceptor}
-	instanceId, bindId := extractServiceIdBindId(request.URL.Path)
-	err := client.Unbind(instanceId, bindId, request.URL.RawQuery)
+	bindId := extractBindId(request.URL.Path)
+	err := client.Unbind(bindId)
 	return peripliContext.JSON(nil, err)
 }
 
@@ -60,12 +60,12 @@ func (i *IstioPlugin) FetchCatalog(request *web.Request, next web.Handler) (*web
 	return peripliContext.JSON(catalog, err)
 }
 
-func extractServiceIdBindId(path string) (string, string) {
+func extractBindId(path string) string {
 	splitPath := strings.Split(path, "/")
 	if splitPath[len(splitPath)-2] != "service_bindings" {
 		panic(fmt.Sprintf("Failed to extract binding id from path %s", path))
 	}
-	return splitPath[len(splitPath)-3], splitPath[len(splitPath)-1]
+	return splitPath[len(splitPath)-1]
 }
 
 func createConsumerInterceptor(configStore router.ConfigStore) router.ConsumerInterceptor {
