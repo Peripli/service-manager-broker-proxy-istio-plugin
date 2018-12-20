@@ -17,11 +17,11 @@ helm del --purge service-broker-proxy || true
 helm install \
     --name service-broker-proxy \
     --namespace service-broker-proxy \
-    --set config.sm.url=https://service-manager-nocis.cfapps.dev01.aws.istio.sapcloud.io \
+    --set config.sm.url=${SM_URL} \
     --set sm.user=$SM_USER \
     --set sm.password=$SM_PASSWORD \
     --set image.repository=$HUB/sb-istio-proxy-k8s \
     --set image.tag=$TAG \
-    --set istio.consumer_id=${ISTIO_CONSUMER_ID:-client.istio.sapcloud.io} \
+    --set istio.consumer_id=${ISTIO_CONSUMER_ID} \
     --set istio.service_name_prefix=${ISTIO_SERVICE_NAME_PREFIX:-istio-} \
     charts/service-broker-proxy-k8s
