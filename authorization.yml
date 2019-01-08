@@ -2,7 +2,7 @@
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  namespace: service-broker-proxy
+  namespace: broker
   name: istio
 rules:
 - apiGroups: ["", "networking.istio.io"] # "" indicates the core API group
@@ -14,10 +14,10 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: istio
-  namespace: service-broker-proxy  # This only grants permissions within the "development" namespace.
+  namespace: broker  # This only grants permissions within the "development" namespace.
 subjects:
 - kind: ServiceAccount
-  name: service-broker-proxy-service-broker-proxy-k8s # Name is case sensitive
+  name: broker-service-broker-proxy-k8s # Name is case sensitive
   apiGroup: ""
 roleRef:
   kind: Role
