@@ -143,7 +143,7 @@ func TestIstioPluginBindInvalidBindResponse(t *testing.T) {
 func TestIstioPluginBindOkButAdaptForbidden(t *testing.T) {
 	g := NewGomegaWithT(t)
 	var err error
-	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{}}
+	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{NetworkProfile: "urn:local.test:public"}}
 	nextHandler := SpyWebHandler{statusCode: http.StatusForbidden, responseBody: []byte("{}")}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
@@ -162,7 +162,7 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithoutEndpoints(t *testi
 	g := NewGomegaWithT(t)
 	var err error
 	configStore := &router.MockConfigStore{}
-	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{ConfigStore: configStore}}
+	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{ConfigStore: configStore, NetworkProfile: "urn:local.test:public"}}
 	nextHandler := SpyWebHandler{responseBody: []byte("{}")}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
@@ -183,7 +183,7 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithEndpoints(t *testing.
 	g := NewGomegaWithT(t)
 	var err error
 	configStore := &router.MockConfigStore{}
-	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{ConfigStore: configStore}}
+	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{ConfigStore: configStore, NetworkProfile: "urn:local.test:public"}}
 	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
 	endpointsResponse, _ := json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{targetEndpoint},
 		NetworkData: model.NetworkDataResponse{

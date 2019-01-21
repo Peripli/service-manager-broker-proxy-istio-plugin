@@ -73,11 +73,14 @@ func createConsumerInterceptor(configStore router.ConfigStore) router.ConsumerIn
 	config.SetEnvPrefix("istio")
 	config.BindEnv("service_name_prefix")
 	config.BindEnv("consumer_id")
+	config.BindEnv("network_profile")
 	config.SetDefault("service_name_prefix", "istio-")
 	consumerInterceptor := router.ConsumerInterceptor{}
 	consumerInterceptor.ServiceNamePrefix = config.GetString("service_name_prefix")
+	consumerInterceptor.NetworkProfile = config.GetString("network_profile")
 	consumerInterceptor.ConsumerId = config.GetString("consumer_id")
-	log.Printf("IstioPlugin starting with configuration service_name_prefix=%s consumer_id=%s\n", consumerInterceptor.ServiceNamePrefix, consumerInterceptor.ConsumerId)
+	log.Printf("IstioPlugin starting with configuration service_name_prefix=%s consumer_id=%s network_profile=%s\n",
+		consumerInterceptor.ServiceNamePrefix, consumerInterceptor.ConsumerId, consumerInterceptor.NetworkProfile)
 	consumerInterceptor.ConfigStore = configStore
 	return consumerInterceptor
 }

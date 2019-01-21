@@ -24,4 +24,5 @@ helm install \
     --set image.tag=$TAG \
     --set istio.consumer_id=${ISTIO_CONSUMER_ID} \
     --set istio.service_name_prefix=${ISTIO_SERVICE_NAME_PREFIX:-istio-} \
+    --set istio.network_profile=${ISTIO_NETWORK_PROFILE} \
     charts/service-broker-proxy-k8s
