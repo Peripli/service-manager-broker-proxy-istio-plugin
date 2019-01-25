@@ -2,6 +2,8 @@
 
 set -euox pipefail
 
+NAME=$1
+echo "Installing to namespace $NAME..."
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 GOPATH=${SCRIPT_DIR}/../../../..
 
@@ -13,10 +15,10 @@ git checkout -- .
 # Add ISTIO environment variables to deployment after "key: sm_password"
 sed -i -e "/key: sm_password/r $SCRIPT_DIR/env.yml" charts/service-broker-proxy-k8s/templates/deployment.yaml
 
-helm del --purge service-broker-proxy || true
+helm del --purge $NAME  || true
 helm install \
-    --name service-broker-proxy \
-    --namespace service-broker-proxy \
+    --name $NAME \
+    --namespace $NAME \
     --set config.sm.url=${SM_URL} \
     --set sm.user=$SM_USER \
     --set sm.password=$SM_PASSWORD \
