@@ -44,11 +44,11 @@ ignored = [
   name = "github.com/onsi/gomega"
   version = "1.4.1"
 
-[[constraint]]
+[[override]]
   name = "istio.io/api"
   branch = "master"
 
-[[constraint]]
+[[override]]
   name = "istio.io/istio"
   branch = "master"
 
