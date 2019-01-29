@@ -96,7 +96,11 @@ func httpError(err error, statusCode int) (*web.Response, error) {
 	return response, nil
 }
 
+func NewIstioPlugin() *IstioPlugin {
+	return &IstioPlugin{interceptor: createConsumerInterceptor(router.NewInClusterConfigStore())}
+}
+
 func InitIstioPlugin(api *web.API) {
-	istioPlugin := &IstioPlugin{interceptor: createConsumerInterceptor(router.NewInClusterConfigStore())}
+	istioPlugin := NewIstioPlugin()
 	api.RegisterPlugins(istioPlugin)
 }
