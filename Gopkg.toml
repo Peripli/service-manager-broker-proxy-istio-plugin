@@ -26,15 +26,11 @@
 
 [[constraint]]
   name = "github.com/Peripli/istio-broker-proxy"
-  revision = "d52fad9b0a3d8f370e34219bb50f8b3bbf249226" 
+  revision = "b7dae834393fd19c34621774be734ed99b03ca9b" 
 
 [[constraint]]
   name = "github.com/spf13/viper"
   version = "1.3.1"
-
-[[override]]
-  name = "github.com/kubernetes-incubator/service-catalog"
-  revision =  "9d82b390b96d565e9301fdfe4ac822311e765a3c"
 
 [[override]]
   name = "k8s.io/client-go"
@@ -47,10 +43,6 @@
 [[override]]
   name = "istio.io/api"
   revision = "6286ff0e63603c77cf7ec30510c39e5cebae65b2"
-
-[[override]]
-  name = "istio.io/istio"
-  revision = "26a369eb0d05a4f57f088d63ce54b32ed7a867fe"
 
 [[override]]
   name = "github.com/golang/protobuf"
