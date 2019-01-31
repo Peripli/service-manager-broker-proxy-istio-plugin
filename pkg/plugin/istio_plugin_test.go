@@ -163,11 +163,11 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithoutEndpoints(t *testi
 	var err error
 	configStore := &router.MockConfigStore{}
 	plugin := IstioPlugin{interceptor: router.ConsumerInterceptor{ConfigStore: configStore, NetworkProfile: "urn:local.test:public"}}
-	nextHandler := SpyWebHandler{responseBody: []byte("{}")}
+	nextHandler := SpyWebHandler{responseBody: []byte(`{"network_data": {"network_profile_id": "urn:local.test:public"}}`)}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
 	origRequest := http.Request{URL: origURL, Method: http.MethodPut}
-	request := web.Request{Request: &origRequest, Body: []byte("{}")}
+	request := web.Request{Request: &origRequest, Body: []byte(`{}`)}
 	g.Expect(err).NotTo(HaveOccurred())
 
 	response, err := plugin.Bind(&request, &nextHandler)
@@ -187,6 +187,7 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithEndpoints(t *testing.
 	targetEndpoint := model.Endpoint{Host: "host2", Port: 8888}
 	endpointsResponse, _ := json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{targetEndpoint},
 		NetworkData: model.NetworkDataResponse{
+			NetworkProfileId: "urn:local.test:public",
 			Data: model.DataResponse{Endpoints: []model.Endpoint{targetEndpoint}}}})
 	nextHandler := SpyWebHandler{responseBody: endpointsResponse}
 
