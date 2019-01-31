@@ -8,24 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var formatter logrus.Formatter
-
-type wrapper struct {
-	old  logrus.Formatter
-	hook *Hook
-}
-
-func (w *wrapper) Format(entry *logrus.Entry) ([]byte, error) {
-	modified := entry.WithField(w.hook.Field, w.hook.Formatter(w.hook.findCaller()))
-	modified.Level = entry.Level
-	modified.Message = entry.Message
-	return w.old.Format(modified)
-}
-
-func newFormatter(old logrus.Formatter, hook *Hook) logrus.Formatter {
-	return &wrapper{old: old, hook: hook}
-}
-
 type Hook struct {
 	Field        string
 	Skip         int
@@ -39,10 +21,7 @@ func (hook *Hook) Levels() []logrus.Level {
 }
 
 func (hook *Hook) Fire(entry *logrus.Entry) error {
-	if formatter != entry.Logger.Formatter {
-		formatter = newFormatter(entry.Logger.Formatter, hook)
-	}
-	entry.Logger.Formatter = formatter
+	entry.Data[hook.Field] = hook.Formatter(hook.findCaller())
 	return nil
 }
 
@@ -80,7 +59,7 @@ func (hook *Hook) skipFile(file string) bool {
 
 func NewHook(levels ...logrus.Level) *Hook {
 	hook := Hook{
-		Field:        "_source",
+		Field:        "source",
 		Skip:         5,
 		levels:       levels,
 		SkipPrefixes: []string{"logrus/", "logrus@"},

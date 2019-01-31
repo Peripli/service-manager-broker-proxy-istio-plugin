@@ -12,13 +12,13 @@ const (
 )
 
 // UserFromContext gets the authenticated user from the context
-func UserFromContext(ctx context.Context) (*UserContext, bool) {
-	userStr, ok := ctx.Value(userKey).(*UserContext)
+func UserFromContext(ctx context.Context) (*User, bool) {
+	userStr, ok := ctx.Value(userKey).(*User)
 	return userStr, ok
 }
 
 // ContextWithUser sets the authenticated user in the context
-func ContextWithUser(ctx context.Context, user *UserContext) context.Context {
+func ContextWithUser(ctx context.Context, user *User) context.Context {
 	return context.WithValue(ctx, userKey, user)
 }
 

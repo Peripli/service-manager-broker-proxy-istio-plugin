@@ -16,9 +16,7 @@
 
 package slice
 
-import (
-	"strings"
-)
+import "strings"
 
 // StringsIntersection returns the common elements in two string slices.
 func StringsIntersection(str1, str2 []string) []string {
@@ -60,16 +58,6 @@ func StringsAnyPrefix(stringSlice []string, prefix string) bool {
 func StringsAnyEquals(stringSlice []string, str string) bool {
 	for _, v := range stringSlice {
 		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
-// StringsAnySuffix returns true if any of the strings in the slice have the given suffix.
-func StringsAnySuffix(stringSlice []string, suffix string) bool {
-	for _, v := range stringSlice {
-		if strings.HasSuffix(v, suffix) {
 			return true
 		}
 	}

@@ -19,7 +19,6 @@ package log
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"sync"
 
@@ -54,15 +53,13 @@ const (
 type Settings struct {
 	Level  string
 	Format string
-	Output io.Writer `mapstructure:"-"`
 }
 
 // DefaultSettings returns default values for Log settings
 func DefaultSettings() *Settings {
 	return &Settings{
-		Level:  "error",
+		Level:  "debug",
 		Format: "text",
-		Output: os.Stdout,
 	}
 }
 
@@ -73,9 +70,6 @@ func (s *Settings) Validate() error {
 	}
 	if len(s.Format) == 0 {
 		return fmt.Errorf("validate Settings: LogFormat missing")
-	}
-	if s.Output == nil {
-		return fmt.Errorf("validate Settings: LogOutput missing")
 	}
 	return nil
 }
@@ -94,7 +88,7 @@ func Configure(ctx context.Context, settings *Settings) context.Context {
 		logger := &logrus.Logger{
 			Formatter: formatter,
 			Level:     level,
-			Out:       settings.Output,
+			Out:       os.Stdout,
 			Hooks:     make(logrus.LevelHooks),
 		}
 		hook := filename.NewHook()
@@ -131,7 +125,7 @@ func RegisterFormatter(name string, formatter logrus.Formatter) error {
 	regMutex.Lock()
 	defer regMutex.Unlock()
 	if _, exists := supportedFormatters[name]; exists {
-		return fmt.Errorf("formatter with name %s is already registered", name)
+		return fmt.Errorf("Formatter with name %s is already registered", name)
 	}
 	supportedFormatters[name] = formatter
 	return nil
