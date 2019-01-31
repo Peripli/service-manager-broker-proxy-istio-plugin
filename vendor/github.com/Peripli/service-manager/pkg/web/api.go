@@ -19,8 +19,9 @@
 package web
 
 import (
-	"github.com/Peripli/service-manager/pkg/health"
 	"net/http"
+
+	"github.com/Peripli/service-manager/pkg/health"
 
 	"github.com/Peripli/service-manager/pkg/log"
 	"github.com/Peripli/service-manager/pkg/util/slice"
@@ -240,6 +241,10 @@ func (api *API) decomposePlugin(plug Plugin) []Filter {
 	}
 	if p, ok := plug.(BindingPoller); ok {
 		filter := newPluginSegment(plug.Name()+":PollBinding", http.MethodGet, "/v1/osb/*/v2/service_instances/*/service_bindings/*/last_operation", MiddlewareFunc(p.PollBinding))
+		filters = append(filters, filter)
+	}
+	if p, ok := plug.(CredentialsAdapter); ok {
+		filter := newPluginSegment(plug.Name()+":AdaptCredentials", http.MethodPost, "/v1/osb/*/v2/service_instances/*/service_bindings/*/adapt_credentials", MiddlewareFunc(p.AdaptCredentials))
 		filters = append(filters, filter)
 	}
 
