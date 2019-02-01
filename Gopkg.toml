@@ -26,7 +26,11 @@
 
 [[constraint]]
   name = "github.com/Peripli/istio-broker-proxy"
-  revision = "b7dae834393fd19c34621774be734ed99b03ca9b" 
+  branch = "master"
+
+[[override]]
+  name = "github.com/golang/glog"
+  source = "github.com/istio/glog"
 
 [[override]]
   name = "k8s.io/client-go"

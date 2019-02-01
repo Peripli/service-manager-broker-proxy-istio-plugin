@@ -10,6 +10,7 @@
   version = "v0.35.1"
 
 [[projects]]
+  branch = "master"
   digest = "1:cc770e16c9d5a6d9c34c681ffc4ac59aee7eca63de8fd76b34f24f8b03227cd8"
   name = "github.com/Peripli/istio-broker-proxy"
   packages = [
@@ -19,7 +20,7 @@
     "pkg/router",
   ]
   pruneopts = "UT"
-  revision = "b7dae834393fd19c34621774be734ed99b03ca9b"
+  revision = "e985da04a68b1fbf11611a6a8ee3df846bc8be47"
 
 [[projects]]
   digest = "1:e45f6ceec40dd04bf124c90d43ac537023b20f6a1f281461d9bc9c2f153ba9ea"
@@ -158,11 +159,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1ba1d79f2810270045c328ae5d674321db34e3aae468eb4233883b473c5c0467"
+  digest = "1:171e9d8854a1c52863988c454e05ab46bd379f807f9fd127ded298afb491cc62"
   name = "github.com/golang/glog"
   packages = ["."]
   pruneopts = "UT"
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+  revision = "2cc4b790554d1a0c48fcc3aeb891e3de70cf8de0"
+  source = "github.com/istio/glog"
 
 [[projects]]
   digest = "1:5d1b5a25486fc7d4e133646d834f6fca7ba1cef9903d40e7aa786c41b89e9e91"
