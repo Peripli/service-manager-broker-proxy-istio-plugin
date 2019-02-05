@@ -60,7 +60,7 @@ func TestIstioPluginBind(t *testing.T) {
 	err = json.Unmarshal(response.Body, &bindResponse)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	g.Expect(interceptor.bindId).To(Equal("34234234234-43535-345345345"))
+	g.Expect(interceptor.bindId).To(Equal("34234234234-43535-345345345-xxx"))
 
 }
 
@@ -188,7 +188,7 @@ func TestIstioPluginBindInvalidAdaptCredentialsResponseWithEndpoints(t *testing.
 	endpointsResponse, _ := json.Marshal(model.BindResponse{Endpoints: []model.Endpoint{targetEndpoint},
 		NetworkData: model.NetworkDataResponse{
 			NetworkProfileId: "urn:local.test:public",
-			Data: model.DataResponse{Endpoints: []model.Endpoint{targetEndpoint}}}})
+			Data:             model.DataResponse{Endpoints: []model.Endpoint{targetEndpoint}}}})
 	nextHandler := SpyWebHandler{responseBody: endpointsResponse}
 
 	origURL, _ := url.Parse("http://host:80/v2/service_instances/3234234-234234-234234/service_bindings/34234234234-43535-345345345")
